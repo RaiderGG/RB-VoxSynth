@@ -54,80 +54,42 @@ end
 -- Build note timeline for FX
 
 
-local function BuildTimeline(
-    take,
-    offset
-)
+local function BuildTimeline(take,offset)
 
     local _, noteCount, _, textCount =
         r.MIDI_CountEvts(take)
 
     local lyrics = {}
 
-    -----------------------------------------
+
     -- Lyrics
-    -----------------------------------------
-
     for i=0,textCount-1 do
-
-        local exists,
-              _,
-              _,
-              ppq,
-              typ,
-              text =
-              r.MIDI_GetTextSysexEvt(
-                  take,
-                  i
-              )
-
+        local exists, _, _, ppq, typ, text = r.MIDI_GetTextSysexEvt(take, i)
 
         if exists and typ == 5 and not stringstarts(text, "[") then
-
             lyrics[#lyrics+1] = {
-
                 ppq = ppq,
                 text = text
-
             }
-
         end
     end
 
-    -----------------------------------------
+
     -- Notes
-    -----------------------------------------
-
     local notes = {}
-
     for i=0,noteCount-1 do
-
-        local _,_,_,s,e,_,pitch,_ =r.MIDI_GetNote(take, i
-              )
+        local _,_,_,s,e,_,pitch,_ =r.MIDI_GetNote(take, i)
 
         if pitch >= 36 and pitch <= 84 then
-
             local lyric, lyricIdx = ClosestLyric(lyrics, s)
-
             notes[#notes+1] = {
-
                 startppq = s,
                 endppq   = e,
-
                 startsec =
-                    r.MIDI_GetProjTimeFromPPQPos(
-                        take,
-                        s
-                    ),
-
+                    r.MIDI_GetProjTimeFromPPQPos(take,s),
                 endsec =
-                    r.MIDI_GetProjTimeFromPPQPos(
-                        take,
-                        e
-                    ),
-
+                    r.MIDI_GetProjTimeFromPPQPos(take,e),
                 pitch = pitch,
-
                 lyric = lyric,
                 lyricIdx = lyricIdx
             }
@@ -142,9 +104,7 @@ local function BuildTimeline(
     )
 
     -- Write Segments
-    local addr =
-        offset + 1
-
+    local addr = offset + 1
     local count = 0
 
     local function WriteSeg(typ,startt,endt,p1,p2)
@@ -217,60 +177,30 @@ local function EnsurePreviewFX(track, partIdx)
 
     local fxCount =
         r.TrackFX_GetCount(track)
-
     local fx = -1
 
     for i = 0, fxCount-1 do
+        local _, name =r.TrackFX_GetFXName(track,i)
 
-        local retval, name =
-            r.TrackFX_GetFXName(
-                track,
-                i
-            )
-
-        if retval
-        and name:find(
-            FX_NAME,
-            1,
-            true
-        ) then
-
+        if name:find(FX_NAME,1,true) then
             fx = i
             break
-
         end
     end
 
 --Create FX if not found
     if fx < 0 then
-
-        fx =
-            r.TrackFX_AddByName(
-                track,
-                FX_NAME,
-                false,
-                -1
-            )
+        fx = r.TrackFX_AddByName(track,FX_NAME,false,-1)
             --r.ShowConsoleMsg(string.format(" %s inserted \n", FX_NAME))
     end
 
     -- Configure slider6 in each FX instance
     if fx >= 0 then
+        local target = partIdx 
+        local current = r.TrackFX_GetParam(track,fx,5)
 
-        local target =
-            partIdx 
-
-        local current =
-            r.TrackFX_GetParam(track,fx,5)
-
-        if math.abs(current-target)
-            > 0.001
-        then
-
-            r.TrackFX_SetParam(
-                track, fx, 5, target
-            )
-
+        if math.abs(current-target) > 0.001 then
+            r.TrackFX_SetParam(track, fx, 5, target)
         end
     end
 
@@ -285,13 +215,8 @@ local function ParseProject()
         r.CountTracks(0)
 
     for i=0,trackCount-1 do
-
         local track =
-            r.GetTrack(
-                0,
-                i
-            )
-
+            r.GetTrack(0,i)
         local _, name =r.GetTrackName(track)
         local offset = OFFSETS[name]           
         local partIdx = PART_IDX[name]
@@ -303,16 +228,12 @@ local function ParseProject()
                 local take = r.GetActiveTake(item)
                 if take and r.TakeIsMIDI(take)
                 then
-                    local _,hash = r.MIDI_GetHash(take,false)
+                    local _,hash = r.MIDI_GetHash(take, false)
                     local key =
                         name .."|" ..hash
-                    if
-                        hashes[name] ~= key
-                    then
+                    if hashes[name] ~= key then
                         hashes[name] = key
-                        BuildTimeline(
-                            take, offset
-                        )
+                        BuildTimeline(take, offset)
                         --r.ShowConsoleMsg(string.format("Track %s updated\n",name))
                     end
                 end
@@ -322,12 +243,11 @@ local function ParseProject()
 end
 
 
---Loop
+
 local function Loop()
     ParseProject()
-    
     r.defer(Loop)
-
 end
+
 
 Loop()

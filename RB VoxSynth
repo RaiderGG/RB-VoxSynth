@@ -1,5 +1,5 @@
-desc:RB3 Vox Preview
-options:gmem=RB3VoxPreview
+desc:RB VoxSynth
+options:gmem=RBVoxSynth
 
 slider1:-9<-62,0,.01>Output (dB)
 slider2:3<0,3,1{Sine,Saw,Square,Triangle}>Wave
@@ -31,18 +31,12 @@ function note2freq(n)
 output_db = slider1;
 attack_samps =
 max(
-    1,
-    floor(
-        slider3 * 0.001 * srate
-    )
+    1,floor(slider3 * 0.001 * srate)
 );
 
 release_samps =
 max(
-    1,
-    floor(
-        slider4 * 0.001 * srate
-    )
+    1,floor(slider4 * 0.001 * srate)
 );
 
 attack_inc =
@@ -148,7 +142,6 @@ playing && segments > 0 ?
             (
                 len =
                     endt - startt;
-
                 len > 0 ?
 
                 (
@@ -159,13 +152,10 @@ playing && segments > 0 ?
                     t > 1 ? t = 1;
 
                     midiPitch =
-                        p1 +
-                        (p2-p1) * t;
+                        p1 + (p2-p1) * t;
 
                     freq =
-                        note2freq(
-                            midiPitch
-                        );
+                        note2freq(midiPitch);
                 );
             );
 
@@ -184,9 +174,7 @@ active && (playing || live_midi_active) ?
     env += attack_inc;
 
     env > 1 ?
-    (
-        env = 1;
-    );
+    (env = 1;);
 )
 
 :
@@ -195,9 +183,7 @@ active && (playing || live_midi_active) ?
     env -= release_inc;
 
     env < 0 ?
-    (
-        env = 0;
-    );
+    (env = 0;);
 );
 
 
@@ -223,16 +209,9 @@ slider2 == 2 ?
 //SQUARE
 (
     cycle < 0.5 ?
-
-    (
-        signal = 1;
-    )
-
+        (signal = 1;)
     :
-
-    (
-        signal = -1;
-    );
+        (signal = -1;);
 );
 
 slider2 == 3 ?
@@ -240,17 +219,10 @@ slider2 == 3 ?
 (
     cycle < 0.5 ?
 
-    (
-        signal =
-            cycle * 4 - 1;
-    )
-
+        (signal = cycle * 4 - 1;)
     :
 
-    (
-        signal =
-            3 - cycle * 4;
-    );
+        (signal = 3 - cycle * 4;);
 );
 
 note_out = signal * env * output_amp;
