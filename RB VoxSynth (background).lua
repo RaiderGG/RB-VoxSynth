@@ -65,7 +65,7 @@ local function BuildTimeline(take,offset)
     for i=0,textCount-1 do
         local exists, _, _, ppq, typ, text = r.MIDI_GetTextSysexEvt(take, i)
 
-        if exists and typ == 5 and not stringstarts(text, "[") then
+        if exists and (typ == 5 or typ == 1) and not stringstarts(text, "[") then
             lyrics[#lyrics+1] = {
                 ppq = ppq,
                 text = text
