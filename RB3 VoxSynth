@@ -1,0 +1,269 @@
+desc:RB3 Vox Preview
+options:gmem=RB3VoxPreview
+
+slider1:-9<-62,0,.01>Output (dB)
+slider2:3<0,3,1{Sine,Saw,Square,Triangle}>Wave
+slider3:0.2<0,100,1>Attack (ms)
+slider4:10<0,2000,1>Release (ms)
+slider5:0<-1200,1200,1>Tuning (cents)
+slider6:0<0,3,1>-Part // 0 = Vocals, 1 = Harm1, 2 = Harm2, 3 = Harm3
+//Slider6 is hidden in the GUI, because it's set by the Lua script automatically.
+
+@init
+
+NOTE  = 0;
+SLIDE = 1;
+TWOPI = 2*$pi;
+cycle = 0;
+freq  = 440;
+env   = 0;
+live_midi_pitch = 0;
+live_midi_channel = -1;
+live_midi_note_active = 0;
+
+function note2freq(n)
+(
+    n += slider5 / 100;
+    440 * pow(2,(n-69)/12);
+);
+
+@slider
+output_db = slider1;
+attack_samps =
+max(
+    1,
+    floor(
+        slider3 * 0.001 * srate
+    )
+);
+
+release_samps =
+max(
+    1,
+    floor(
+        slider4 * 0.001 * srate
+    )
+);
+
+attack_inc =
+1 / attack_samps;
+
+release_inc =
+1 / release_samps;
+
+part_offset =
+floor(slider6) * 100000;
+
+output_amp = 10^(output_db / 20) ;
+
+@block
+
+while (midirecv(offset, msg1, msg23)) (
+    status = msg1 & 0xF0;
+    channel = msg1 & 0x0F;
+    note = msg23 & 0x7F;
+    velocity = (msg23 >> 8) & 0x7F;
+
+    status == 0x90 && velocity > 0 ?
+    (
+        note >= 36 && note <= 84 ?
+        (
+            live_midi_pitch = note;
+            live_midi_channel = channel;
+            live_midi_note_active = 1;
+        );
+    )
+    :
+    (
+        (status == 0x80 || (status == 0x90 && velocity == 0))
+        && channel == live_midi_channel
+        && note == live_midi_pitch ?
+        (
+            live_midi_note_active = 0;
+        );
+    );
+
+    midisend(offset, msg1, msg23);
+);
+
+part_offset =
+floor(slider6) * 100000;
+
+segments =
+gmem[part_offset];
+
+playing =
+(
+    play_state == 1
+    ||
+    play_state == 5
+);
+
+live_midi_active =
+    !playing
+    && live_midi_note_active;
+
+projtime = play_position;
+
+active = 0;
+
+live_midi_active ?
+(
+    active = 1;
+    freq = note2freq(live_midi_pitch);
+);
+
+playing && segments > 0 ?
+(
+    i = 0;
+
+    loop(
+        segments,
+
+        base = part_offset + 1 + i * 5;
+
+        segtype = gmem[base];
+
+        startt = gmem[base+1];
+
+        endt = gmem[base+2];
+
+        p1 = gmem[base+3];
+
+        p2 = gmem[base+4];
+
+        (projtime >= startt && projtime < endt) ?
+
+        (
+            active = 1;
+            segtype == NOTE ?
+
+            (
+                freq =
+                    note2freq(p1);
+            )
+
+            :
+
+            (
+                len =
+                    endt - startt;
+
+                len > 0 ?
+
+                (
+                    t =
+                        (projtime - startt) / len;
+
+                    t < 0 ? t = 0;
+                    t > 1 ? t = 1;
+
+                    midiPitch =
+                        p1 +
+                        (p2-p1) * t;
+
+                    freq =
+                        note2freq(
+                            midiPitch
+                        );
+                );
+            );
+
+            i = segments;
+        );
+
+        i += 1;
+    );
+);
+
+@sample
+
+active && (playing || live_midi_active) ?
+
+(
+    env += attack_inc;
+
+    env > 1 ?
+    (
+        env = 1;
+    );
+)
+
+:
+
+(
+    env -= release_inc;
+
+    env < 0 ?
+    (
+        env = 0;
+    );
+);
+
+
+cycle += freq / srate; cycle > 1 ? cycle -= 1;
+
+
+
+slider2 == 0 ?
+//SINE
+(
+    signal =
+        sin(cycle * TWOPI);
+);
+
+slider2 == 1 ?
+//SAW
+(
+    signal =
+        cycle * 2 - 1;
+);
+
+slider2 == 2 ?
+//SQUARE
+(
+    cycle < 0.5 ?
+
+    (
+        signal = 1;
+    )
+
+    :
+
+    (
+        signal = -1;
+    );
+);
+
+slider2 == 3 ?
+//
+(
+    cycle < 0.5 ?
+
+    (
+        signal =
+            cycle * 4 - 1;
+    )
+
+    :
+
+    (
+        signal =
+            3 - cycle * 4;
+    );
+);
+
+note_out = signal * env * output_amp;
+
+spl0 += note_out;
+spl1 += note_out;
+
+@gfx
+
+part_offset = floor(slider6) * 100000;
+
+gfx_x = 10;
+gfx_y = 5;
+
+gmem[part_offset]
+;
