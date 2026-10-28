@@ -24,6 +24,7 @@ First of all, make sure you have followed the installation steps correctly.
 
 Run **RB VoxSynth (background).lua**. The ReaScript will search for the **PART VOCALS** and **HARM1/2/3** tracks and add the JSFX into each track.  
 
+- You can also put the JSFX first on the vocal/harm tracks and the script will attach to them automatically.
 ## Troubleshooting
 
 - If you notice your changes to a MIDI track are not being reflected in the synth, you may have accidentally stopped the **.lua** script. Just run it again and it'll be working just fine.
