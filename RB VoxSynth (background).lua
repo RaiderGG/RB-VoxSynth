@@ -2,22 +2,21 @@
 -- Support for VOCALS and HARM Tracks
 local r = reaper
 r.gmem_attach("RBVoxSynth")
-
+local FX_NAME = "RB VoxSynth"
 local NOTE  = 0
 local SLIDE = 1
-
-local OFFSETS = {
-    ["PART VOCALS"] = 0,
-    ["HARM1"]       = 100000,
-    ["HARM2"]       = 200000,
-    ["HARM3"]       = 300000
-}
-local PART_IDX = {
-    ["PART VOCALS"] = 0,
-    ["HARM1"]       = 1,
-    ["HARM2"]       = 2,
-    ["HARM3"]       = 3
-}
+local parts ={
+    offsets = {
+        ["PART VOCALS"] = 0,
+        ["HARM1"]       = 100000,
+        ["HARM2"]       = 200000,
+        ["HARM3"]       = 300000},
+    idx = {
+        ["PART VOCALS"] = 0,
+        ["HARM1"]       = 1,
+        ["HARM2"]       = 2,
+        ["HARM3"]       = 3}
+    }
 local hashes = {}
 
 --------------------------------------------------
@@ -168,10 +167,6 @@ local function BuildTimeline(take,offset)
 end
 
 
--- FX Management
-
-
-local FX_NAME = "RB VoxSynth"
 
 local function EnsurePreviewFX(track, partIdx)
 
@@ -218,11 +213,11 @@ local function ParseProject()
         local track =
             r.GetTrack(0,i)
         local _, name =r.GetTrackName(track)
-        local offset = OFFSETS[name]           
-        local partIdx = PART_IDX[name]
+        local offset = parts.offsets[name]           
+        local partIdx = parts.idx[name]
 
-        if partIdx then EnsurePreviewFX(track, partIdx) end
-        if offset then
+        if partIdx then
+            EnsurePreviewFX(track, partIdx)
             local item = r.GetTrackMediaItem(track, 0)
             if item then
                 local take = r.GetActiveTake(item)
