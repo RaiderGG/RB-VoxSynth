@@ -2,14 +2,12 @@
 
 A JSFX Synth for previewing RB style vocal charts in REAPER. Made for previewing vocal notes with slide support.
 
-![Preview](screenshots/SynthUI.jpg)
-
 ## Requirements
 
 - REAPER with ReaScript support enabled.
 - MiloHax's RB Charting Template (or similar with PART VOCALS and HARM1/2/3 tracks).
 
-
+![Preview](screenshots/SynthUI.jpg)
 
 ## Installation
 1. Download .zip from the **Releases** tab
